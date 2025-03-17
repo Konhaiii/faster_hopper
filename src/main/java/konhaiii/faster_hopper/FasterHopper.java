@@ -25,9 +25,6 @@ public class FasterHopper implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		//TODO Fichier config pour la vitesse du golden hopper
-		//TODO Editer le fabric.mod.json et les autres fichiers de properties
-
 		LOGGER.info("FasterHopper: Initialize");
 		config = ModConfigs.loadConfig();
 		ModScreens.initialize();
