@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "faster_hopper",
+	"version": "${version}",
+	"name": "Faster Hopper",
+	"description": "Craft a new Golden Hopper to quickly transfer items.",
+	"authors": [
+		"Konhaiii"
+	],
+	"contact": {
+		"homepage": "https://github.com/Konhaiii/faster_hopper",
+		"sources": "https://github.com/Konhaiii/faster_hopper",
+		"issues": "https://github.com/Konhaiii/faster_hopper/issues"
+	},
+	"license": "CC-BY-NC-4.0",
+	"icon": "assets/faster_hopper/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"konhaiii.faster_hopper.FasterHopper"
+		],
+		"client": [
+			"konhaiii.faster_hopper.FasterHopperClient"
+		]
+	},
+	"mixins": [
+		"faster_hopper.mixins.json",
+		{
+			"config": "faster_hopper.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.10",
+		"minecraft": "~1.21.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

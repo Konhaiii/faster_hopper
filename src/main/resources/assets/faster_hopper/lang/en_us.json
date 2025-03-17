@@ -1,0 +1,12 @@
+{
+  "itemGroup.faster_hopper": "Faster Hopper",
+
+  "block.faster_hopper.golden_hopper": "Golden Hopper",
+
+  "item.faster_hopper.golden_hopper": "Golden Hopper",
+  "item.faster_hopper.golden_hopper_minecart": "Golden Hopper Minecart",
+
+  "entity.faster_hopper.golden_hopper_minecart": "Minecart with Golden Hopper",
+
+  "container.golden_hopper": "Golden Hopper"
+}

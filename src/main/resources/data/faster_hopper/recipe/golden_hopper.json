@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "C": "minecraft:hopper",
+    "I": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "I I",
+    "ICI",
+    " I "
+  ],
+  "result": {
+    "count": 1,
+    "id": "faster_hopper:golden_hopper"
+  }
+}

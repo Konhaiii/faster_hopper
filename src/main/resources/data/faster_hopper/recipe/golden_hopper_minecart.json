@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "faster_hopper:golden_hopper",
+    "minecraft:minecart"
+  ],
+  "result": {
+    "count": 1,
+    "id": "faster_hopper:golden_hopper_minecart"
+  }
+}

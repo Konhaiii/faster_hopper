@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "faster_hopper:item/golden_hopper_minecart"
+  }
+}

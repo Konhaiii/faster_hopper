@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "konhaiii.faster_hopper.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"ExampleMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
