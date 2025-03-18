@@ -17,6 +17,6 @@ This one behave a lot like the vanilla one, except for the 7 slots it can hold.
 ![Golden Hopper Minecart Recipe](https://cdn.modrinth.com/data/cached_images/0eef4d88da98ab15ee6be837bfdd852159b232e2.png)\
 \
 **Configurable:**\
-Adjust the Golden Hopper cooldown with a config file. The default value is 2 ticks (1 transfer every 2 ticks), the default value of the vanilla hopper is 8 ticks for comparison.
+Adjust the Golden Hopper cooldown with a config file (located in .minecraft/config). The default value is 2 ticks (1 transfer every 2 ticks), the default value of the vanilla hopper is 8 ticks for comparison.
 
 - **`goldenHopperCooldownTick`**: Number of ticks between every item transfer (2 by default).
