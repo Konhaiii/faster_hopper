@@ -59,7 +59,7 @@ public class ModBlocks {
 		return RegistryKey.of(RegistryKeys.ITEM, Identifier.of(FasterHopper.MOD_ID, name));
 	}
 	public static final BlockEntityType<GoldenHopperBlockEntity> GOLDEN_HOPPER_BLOCK_ENTITY =
-			register("counter", GoldenHopperBlockEntity::new, ModBlocks.GOLDEN_HOPPER);
+			register("golden_hopper", GoldenHopperBlockEntity::new, ModBlocks.GOLDEN_HOPPER);
 
 	private static <T extends BlockEntity> BlockEntityType<T> register(
 			String name,
