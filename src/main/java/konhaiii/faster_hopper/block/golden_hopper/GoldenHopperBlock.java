@@ -1,16 +1,22 @@
 package konhaiii.faster_hopper.block.golden_hopper;
 
+import com.google.common.collect.ImmutableMap;
 import com.mojang.serialization.MapCodec;
+import java.util.Map;
+import java.util.function.Function;
+
 import konhaiii.faster_hopper.block.ModBlocks;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.stat.Stats;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
@@ -24,6 +30,7 @@ import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
@@ -35,21 +42,8 @@ public class GoldenHopperBlock extends BlockWithEntity {
 	public static final MapCodec<GoldenHopperBlock> CODEC = createCodec(GoldenHopperBlock::new);
 	public static final EnumProperty<Direction> FACING = Properties.HOPPER_FACING;
 	public static final BooleanProperty ENABLED = Properties.ENABLED;
-	private static final VoxelShape TOP_SHAPE = Block.createCuboidShape(0.0, 10.0, 0.0, 16.0, 16.0, 16.0);
-	private static final VoxelShape MIDDLE_SHAPE = Block.createCuboidShape(4.0, 4.0, 4.0, 12.0, 10.0, 12.0);
-	private static final VoxelShape OUTSIDE_SHAPE = VoxelShapes.union(MIDDLE_SHAPE, TOP_SHAPE);
-	private static final VoxelShape INSIDE_SHAPE = createCuboidShape(2.0, 11.0, 2.0, 14.0, 16.0, 14.0);
-	private static final VoxelShape DEFAULT_SHAPE = VoxelShapes.combineAndSimplify(OUTSIDE_SHAPE, INSIDE_SHAPE, BooleanBiFunction.ONLY_FIRST);
-	private static final VoxelShape DOWN_SHAPE = VoxelShapes.union(DEFAULT_SHAPE, Block.createCuboidShape(6.0, 0.0, 6.0, 10.0, 4.0, 10.0));
-	private static final VoxelShape EAST_SHAPE = VoxelShapes.union(DEFAULT_SHAPE, Block.createCuboidShape(12.0, 4.0, 6.0, 16.0, 8.0, 10.0));
-	private static final VoxelShape NORTH_SHAPE = VoxelShapes.union(DEFAULT_SHAPE, Block.createCuboidShape(6.0, 4.0, 0.0, 10.0, 8.0, 4.0));
-	private static final VoxelShape SOUTH_SHAPE = VoxelShapes.union(DEFAULT_SHAPE, Block.createCuboidShape(6.0, 4.0, 12.0, 10.0, 8.0, 16.0));
-	private static final VoxelShape WEST_SHAPE = VoxelShapes.union(DEFAULT_SHAPE, Block.createCuboidShape(0.0, 4.0, 6.0, 4.0, 8.0, 10.0));
-	private static final VoxelShape DOWN_RAYCAST_SHAPE = INSIDE_SHAPE;
-	private static final VoxelShape EAST_RAYCAST_SHAPE = VoxelShapes.union(INSIDE_SHAPE, Block.createCuboidShape(12.0, 8.0, 6.0, 16.0, 10.0, 10.0));
-	private static final VoxelShape NORTH_RAYCAST_SHAPE = VoxelShapes.union(INSIDE_SHAPE, Block.createCuboidShape(6.0, 8.0, 0.0, 10.0, 10.0, 4.0));
-	private static final VoxelShape SOUTH_RAYCAST_SHAPE = VoxelShapes.union(INSIDE_SHAPE, Block.createCuboidShape(6.0, 8.0, 12.0, 10.0, 10.0, 16.0));
-	private static final VoxelShape WEST_RAYCAST_SHAPE = VoxelShapes.union(INSIDE_SHAPE, Block.createCuboidShape(0.0, 8.0, 6.0, 4.0, 10.0, 10.0));
+	private final Function<BlockState, VoxelShape> shapeFunction;
+	private final Map<Direction, VoxelShape> shapesByDirection;
 
 	@Override
 	public MapCodec<GoldenHopperBlock> getCodec() {
@@ -59,30 +53,35 @@ public class GoldenHopperBlock extends BlockWithEntity {
 	public GoldenHopperBlock(AbstractBlock.Settings settings) {
 		super(settings);
 		this.setDefaultState(this.stateManager.getDefaultState().with(FACING, Direction.DOWN).with(ENABLED, true));
+		VoxelShape voxelShape = Block.createColumnShape(12.0, 11.0, 16.0);
+		this.shapeFunction = this.createShapeFunction(voxelShape);
+		this.shapesByDirection = ImmutableMap.<Direction, VoxelShape>builderWithExpectedSize(5)
+				.putAll(VoxelShapes.createHorizontalFacingShapeMap(VoxelShapes.union(voxelShape, Block.createCuboidZShape(4.0, 8.0, 10.0, 0.0, 4.0))))
+				.put(Direction.DOWN, voxelShape)
+				.build();
+	}
+
+	private Function<BlockState, VoxelShape> createShapeFunction(VoxelShape shape) {
+		VoxelShape voxelShape = VoxelShapes.union(Block.createColumnShape(16.0, 10.0, 16.0), Block.createColumnShape(8.0, 4.0, 10.0));
+		VoxelShape voxelShape2 = VoxelShapes.combineAndSimplify(voxelShape, shape, BooleanBiFunction.ONLY_FIRST);
+		Map<Direction, VoxelShape> map = VoxelShapes.createFacingShapeMap(
+				Block.createCuboidZShape(4.0, 4.0, 8.0, 0.0, 8.0), new Vec3d(8.0, 6.0, 8.0).multiply(0.0625)
+		);
+		return this.createShapeFunction(
+				state -> VoxelShapes.union(
+						voxelShape2, VoxelShapes.combineAndSimplify(map.get(state.get(FACING)), VoxelShapes.fullCube(), BooleanBiFunction.AND)
+				),
+				ENABLED);
 	}
 
 	@Override
 	protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-		return switch (state.get(FACING)) {
-			case DOWN -> DOWN_SHAPE;
-			case NORTH -> NORTH_SHAPE;
-			case SOUTH -> SOUTH_SHAPE;
-			case WEST -> WEST_SHAPE;
-			case EAST -> EAST_SHAPE;
-			default -> DEFAULT_SHAPE;
-		};
+		return this.shapeFunction.apply(state);
 	}
 
 	@Override
 	protected VoxelShape getRaycastShape(BlockState state, BlockView world, BlockPos pos) {
-		return switch (state.get(FACING)) {
-			case DOWN -> DOWN_RAYCAST_SHAPE;
-			case NORTH -> NORTH_RAYCAST_SHAPE;
-			case SOUTH -> SOUTH_RAYCAST_SHAPE;
-			case WEST -> WEST_RAYCAST_SHAPE;
-			case EAST -> EAST_RAYCAST_SHAPE;
-			default -> INSIDE_SHAPE;
-		};
+		return this.shapesByDirection.get(state.get(FACING));
 	}
 
 	@Override
@@ -132,9 +131,8 @@ public class GoldenHopperBlock extends BlockWithEntity {
 	}
 
 	@Override
-	protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
-		ItemScatterer.onStateReplaced(state, newState, world, pos);
-		super.onStateReplaced(state, world, pos, newState, moved);
+	protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
+		ItemScatterer.onStateReplaced(state, world, pos);
 	}
 
 	@Override
@@ -163,7 +161,7 @@ public class GoldenHopperBlock extends BlockWithEntity {
 	}
 
 	@Override
-	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof GoldenHopperBlockEntity) {
 			GoldenHopperBlockEntity.onEntityCollided(world, pos, state, entity, (GoldenHopperBlockEntity)blockEntity);

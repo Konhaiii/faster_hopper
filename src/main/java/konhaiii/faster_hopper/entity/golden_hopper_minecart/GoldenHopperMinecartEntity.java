@@ -133,7 +133,7 @@ public class GoldenHopperMinecartEntity extends StorageMinecartEntity implements
 	@Override
 	protected void readCustomDataFromNbt(NbtCompound nbt) {
 		super.readCustomDataFromNbt(nbt);
-		this.enabled = !nbt.contains("Enabled") || nbt.getBoolean("Enabled");
+		this.enabled = nbt.getBoolean("Enabled", true);
 	}
 
 	@Override

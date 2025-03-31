@@ -6,7 +6,6 @@ import konhaiii.faster_hopper.entity.ModEntities;
 import konhaiii.faster_hopper.item.ModItems;
 import konhaiii.faster_hopper.screen.ModScreens;
 import net.fabricmc.api.ModInitializer;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

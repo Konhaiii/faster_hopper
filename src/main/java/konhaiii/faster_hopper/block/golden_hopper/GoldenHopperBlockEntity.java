@@ -1,8 +1,5 @@
 package konhaiii.faster_hopper.block.golden_hopper;
 
-import java.util.List;
-import java.util.function.BooleanSupplier;
-
 import konhaiii.faster_hopper.FasterHopper;
 import konhaiii.faster_hopper.block.ModBlocks;
 import net.minecraft.block.Block;
@@ -32,6 +29,9 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.function.BooleanSupplier;
+
 public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implements Hopper {
 	public static final int TRANSFER_COOLDOWN = FasterHopper.config.goldenHopperCooldownTick;
 	public static final int INVENTORY_SIZE = 7;
@@ -54,7 +54,7 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 			Inventories.readNbt(nbt, this.inventory, registries);
 		}
 
-		this.transferCooldown = nbt.getInt("TransferCooldown");
+		this.transferCooldown = nbt.getInt("TransferCooldown", -1);
 	}
 
 	@Override
