@@ -11,7 +11,7 @@ This shiny hopper have 7 slots, and can transfer items a lot more quickly than v
 
 ![Golden Hopper Recipe](https://cdn.modrinth.com/data/cached_images/88c25b9a9711edc3a01719abaee4191cf48147a0.png)\
 \
-**Golden Hopper Minecart:**\
+**Golden Hopper Minecart (1.21.4+):**\
 This one behave a lot like the vanilla one, except for the 7 slots it can hold.
 
 ![Golden Hopper Minecart Recipe](https://cdn.modrinth.com/data/cached_images/0eef4d88da98ab15ee6be837bfdd852159b232e2.png)\
