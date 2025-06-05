@@ -1,6 +1,6 @@
-package konhaiii.faster_hopper.block.golden_hopper;
+package konhaiii.faster_hopper.block;
 
-import konhaiii.faster_hopper.screen.ModScreens;
+import konhaiii.faster_hopper.FHScreen;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -18,16 +18,24 @@ public class GoldenHopperScreenHandler extends ScreenHandler {
 	}
 
 	public GoldenHopperScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory) {
-		super(ModScreens.GOLDEN_HOPPER, syncId);
+		super(FHScreen.GOLDEN_HOPPER, syncId);
 		this.inventory = inventory;
 		checkSize(inventory, SLOT_COUNT);
 		inventory.onOpen(playerInventory.player);
 
-		for (int i = 0; i < SLOT_COUNT; i++) {
-			this.addSlot(new Slot(inventory, i, 26 + i * 18, 20));
+		for (int j = 0; j < SLOT_COUNT; j++) {
+			this.addSlot(new Slot(inventory, j, 26 + j * 18, 20));
 		}
 
-		this.addPlayerSlots(playerInventory, 8, 51);
+		for (int j = 0; j < 3; j++) {
+			for (int k = 0; k < 9; k++) {
+				this.addSlot(new Slot(playerInventory, k + j * 9 + 9, 8 + k * 18, j * 18 + 51));
+			}
+		}
+
+		for (int j = 0; j < 9; j++) {
+			this.addSlot(new Slot(playerInventory, j, 8 + j * 18, 109));
+		}
 	}
 
 	@Override

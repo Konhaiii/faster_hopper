@@ -1,11 +1,13 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_minecart": {
+    "has_gold_ingot": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:minecart"
+            "items": [
+              "minecraft:gold_ingot"
+            ]
           }
         ]
       },
@@ -13,20 +15,21 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "faster_hopper:golden_hopper_minecart"
+        "recipe": "faster_hopper:golden_hopper"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_the_recipe",
-      "has_minecart"
+      "has_gold_ingot",
+      "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "faster_hopper:golden_hopper_minecart"
+      "faster_hopper:golden_hopper"
     ]
-  }
+  },
+  "sends_telemetry_event": false
 }

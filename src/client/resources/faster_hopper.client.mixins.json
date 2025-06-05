@@ -1,11 +1,9 @@
 {
   "required": true,
   "package": "konhaiii.faster_hopper.mixin.client",
-  "compatibilityLevel": "JAVA_21",
-  "client": [
-    "ExampleClientMixin"
-  ],
+  "compatibilityLevel": "JAVA_17",
+  "client": [],
   "injectors": {
     "defaultRequire": 1
-	}
+  }
 }
