@@ -13,9 +13,10 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.vehicle.StorageMinecartEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -125,15 +126,15 @@ public class GoldenHopperMinecartEntity extends StorageMinecartEntity implements
 	}
 
 	@Override
-	protected void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
-		nbt.putBoolean("Enabled", this.enabled);
+	protected void writeCustomData(WriteView view) {
+		super.writeCustomData(view);
+		view.putBoolean("Enabled", this.enabled);
 	}
 
 	@Override
-	protected void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
-		this.enabled = !nbt.contains("Enabled") || nbt.getBoolean("Enabled");
+	protected void readCustomData(ReadView view) {
+		super.readCustomData(view);
+		this.enabled = view.getBoolean("Enabled", true);
 	}
 
 	@Override

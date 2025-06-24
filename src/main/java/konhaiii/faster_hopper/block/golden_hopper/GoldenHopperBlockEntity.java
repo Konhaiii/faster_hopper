@@ -1,8 +1,5 @@
 package konhaiii.faster_hopper.block.golden_hopper;
 
-import java.util.List;
-import java.util.function.BooleanSupplier;
-
 import konhaiii.faster_hopper.FasterHopper;
 import konhaiii.faster_hopper.block.ModBlocks;
 import net.minecraft.block.Block;
@@ -19,11 +16,11 @@ import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.predicate.entity.EntityPredicates;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
@@ -31,6 +28,9 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.function.BooleanSupplier;
 
 public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implements Hopper {
 	public static final int TRANSFER_COOLDOWN = FasterHopper.config.goldenHopperCooldownTick;
@@ -47,24 +47,24 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 	}
 
 	@Override
-	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-		super.readNbt(nbt, registries);
+	protected void readData(ReadView view) {
+		super.readData(view);
 		this.inventory = DefaultedList.ofSize(this.size(), ItemStack.EMPTY);
-		if (!this.readLootTable(nbt)) {
-			Inventories.readNbt(nbt, this.inventory, registries);
+		if (!this.readLootTable(view)) {
+			Inventories.readData(view, this.inventory);
 		}
 
-		this.transferCooldown = nbt.getInt("TransferCooldown");
+		this.transferCooldown = view.getInt("TransferCooldown", -1);
 	}
 
 	@Override
-	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-		super.writeNbt(nbt, registries);
-		if (!this.writeLootTable(nbt)) {
-			Inventories.writeNbt(nbt, this.inventory, registries);
+	protected void writeData(WriteView view) {
+		super.writeData(view);
+		if (!this.writeLootTable(view)) {
+			Inventories.writeData(view, this.inventory);
 		}
 
-		nbt.putInt("TransferCooldown", this.transferCooldown);
+		view.putInt("TransferCooldown", this.transferCooldown);
 	}
 
 	@Override
