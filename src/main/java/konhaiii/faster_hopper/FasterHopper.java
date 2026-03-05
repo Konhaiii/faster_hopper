@@ -4,14 +4,9 @@ import konhaiii.faster_hopper.block.ModBlocks;
 import konhaiii.faster_hopper.config.ModConfigs;
 import konhaiii.faster_hopper.entity.ModEntities;
 import konhaiii.faster_hopper.item.ModItems;
-import konhaiii.faster_hopper.screen.GoldenHopperMenu;
+import konhaiii.faster_hopper.screen.ModScreens;
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.inventory.MenuType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +18,6 @@ public class FasterHopper implements ModInitializer {
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static ModConfigs config;
-	public static final MenuType<GoldenHopperMenu> GOLDEN_HOPPER_MENU = Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath("faster_hopper", "golden_hopper_menu"), new MenuType<>(GoldenHopperMenu::new, FeatureFlags.VANILLA_SET));
 
 	@Override
 	public void onInitialize() {
@@ -33,6 +27,7 @@ public class FasterHopper implements ModInitializer {
 
 		LOGGER.info("FasterHopper: Initialize");
 		config = ModConfigs.loadConfig();
+		ModScreens.initialize();
 		ModEntities.initialize();
 		ModItems.initialize();
 		ModBlocks.initialize();

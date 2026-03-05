@@ -1,32 +1,35 @@
 package konhaiii.faster_hopper;
 
-import konhaiii.faster_hopper.screen.GoldenHopperMenu;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.player.Inventory;
+import konhaiii.faster_hopper.block.golden_hopper.GoldenHopperScreenHandler;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
-public class GoldenHopperScreen extends AbstractContainerScreen<GoldenHopperMenu> {
-	private static final Identifier HOPPER_LOCATION = Identifier.fromNamespaceAndPath("faster_hopper", "textures/gui/container/golden_hopper.png");
+@Environment(EnvType.CLIENT)
+public class GoldenHopperScreen extends HandledScreen<GoldenHopperScreenHandler> {
+	private static final Identifier TEXTURE = Identifier.of("faster_hopper:textures/gui/container/golden_hopper.png");
 
-	public GoldenHopperScreen(GoldenHopperMenu goldenHopperMenu, Inventory inventory, Component component) {
-		super(goldenHopperMenu, inventory, component);
-		this.imageHeight = 133;
-		this.inventoryLabelY = this.imageHeight - 94;
+	public GoldenHopperScreen(GoldenHopperScreenHandler handler, PlayerInventory inventory, Text title) {
+		super(handler, inventory, title);
+		this.backgroundHeight = 133;
+		this.playerInventoryTitleY = this.backgroundHeight - 94;
 	}
 
 	@Override
-	public void render(GuiGraphics guiGraphics, int i, int j, float f) {
-		super.render(guiGraphics, i, j, f);
-		this.renderTooltip(guiGraphics, i, j);
+	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+		super.render(context, mouseX, mouseY, delta);
+		this.drawMouseoverTooltip(context, mouseX, mouseY);
 	}
 
 	@Override
-	protected void renderBg(GuiGraphics guiGraphics, float f, int i, int j) {
-		int k = (this.width - this.imageWidth) / 2;
-		int l = (this.height - this.imageHeight) / 2;
-		guiGraphics.blit(RenderPipelines.GUI_TEXTURED, HOPPER_LOCATION, k, l, 0.0F, 0.0F, this.imageWidth, this.imageHeight, 256, 256);
+	protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
+		int i = (this.width - this.backgroundWidth) / 2;
+		int j = (this.height - this.backgroundHeight) / 2;
+		context.drawTexture(RenderLayer::getGuiTextured, TEXTURE, i, j, 0.0F, 0.0F, this.backgroundWidth, this.backgroundHeight, 256, 256);
 	}
 }
