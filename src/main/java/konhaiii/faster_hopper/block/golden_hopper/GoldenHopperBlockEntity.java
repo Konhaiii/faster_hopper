@@ -1,146 +1,134 @@
 package konhaiii.faster_hopper.block.golden_hopper;
 
-import konhaiii.faster_hopper.FasterHopper;
-import konhaiii.faster_hopper.block.ModBlocks;
-import konhaiii.faster_hopper.screen.GoldenHopperMenu;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.NonNullList;
-import net.minecraft.network.chat.Component;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.world.Container;
-import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.WorldlyContainer;
-import net.minecraft.world.WorldlyContainerHolder;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySelector;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.ChestBlock;
-import net.minecraft.world.level.block.entity.*;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.AABB;
-import org.jspecify.annotations.Nullable;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
-import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
-import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
-
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity implements Hopper {
-	public static final int MOVE_ITEM_SPEED = FasterHopper.config.goldenHopperCooldownTick;
-	public static final int HOPPER_CONTAINER_SIZE = 7;
-	private static final int[][] CACHED_SLOTS = new int[54][];
-	private static final int NO_COOLDOWN_TIME = -1;
-	private static final Component DEFAULT_NAME = Component.translatable("container.golden_hopper");
-	private NonNullList<ItemStack> items = NonNullList.withSize(HOPPER_CONTAINER_SIZE, ItemStack.EMPTY);
-	private int cooldownTime = -1;
-	private long tickedGameTime;
+import konhaiii.faster_hopper.FasterHopper;
+import konhaiii.faster_hopper.block.ModBlocks;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.InventoryProvider;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.Hopper;
+import net.minecraft.block.entity.LootableContainerBlockEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.predicate.entity.EntityPredicates;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.text.Text;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
+
+public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implements Hopper {
+	public static final int TRANSFER_COOLDOWN = FasterHopper.config.goldenHopperCooldownTick;
+	public static final int INVENTORY_SIZE = 7;
+	private static final int[][] AVAILABLE_SLOTS_CACHE = new int[54][];
+	private DefaultedList<ItemStack> inventory = DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+	private int transferCooldown = -1;
+	private long lastTickTime;
 	private Direction facing;
 
-	public GoldenHopperBlockEntity(BlockPos blockPos, BlockState blockState) {
-		super(ModBlocks.GOLDEN_HOPPER_BLOCK_ENTITY, blockPos, blockState);
-		this.facing = blockState.getValue(GoldenHopperBlock.FACING);
+	public GoldenHopperBlockEntity(BlockPos pos, BlockState state) {
+		super(ModBlocks.GOLDEN_HOPPER_BLOCK_ENTITY, pos, state);
+		this.facing = state.get(GoldenHopperBlock.FACING);
 	}
 
 	@Override
-	protected void loadAdditional(ValueInput valueInput) {
-		super.loadAdditional(valueInput);
-		this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-		if (!this.tryLoadLootTable(valueInput)) {
-			ContainerHelper.loadAllItems(valueInput, this.items);
+	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+		super.readNbt(nbt, registries);
+		this.inventory = DefaultedList.ofSize(this.size(), ItemStack.EMPTY);
+		if (!this.readLootTable(nbt)) {
+			Inventories.readNbt(nbt, this.inventory, registries);
 		}
 
-		this.cooldownTime = valueInput.getIntOr("TransferCooldown", -1);
+		this.transferCooldown = nbt.getInt("TransferCooldown");
 	}
 
 	@Override
-	protected void saveAdditional(ValueOutput valueOutput) {
-		super.saveAdditional(valueOutput);
-		if (!this.trySaveLootTable(valueOutput)) {
-			ContainerHelper.saveAllItems(valueOutput, this.items);
+	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+		super.writeNbt(nbt, registries);
+		if (!this.writeLootTable(nbt)) {
+			Inventories.writeNbt(nbt, this.inventory, registries);
 		}
 
-		valueOutput.putInt("TransferCooldown", this.cooldownTime);
+		nbt.putInt("TransferCooldown", this.transferCooldown);
 	}
 
 	@Override
-	public int getContainerSize() {
-		return this.items.size();
+	public int size() {
+		return this.inventory.size();
 	}
 
 	@Override
-	public ItemStack removeItem(int i, int j) {
-		this.unpackLootTable(null);
-		return ContainerHelper.removeItem(this.getItems(), i, j);
+	public ItemStack removeStack(int slot, int amount) {
+		this.generateLoot(null);
+		return Inventories.splitStack(this.getHeldStacks(), slot, amount);
 	}
 
 	@Override
-	public void setItem(int i, ItemStack itemStack) {
-		this.unpackLootTable(null);
-		this.getItems().set(i, itemStack);
-		itemStack.limitSize(this.getMaxStackSize(itemStack));
+	public void setStack(int slot, ItemStack stack) {
+		this.generateLoot(null);
+		this.getHeldStacks().set(slot, stack);
+		stack.capCount(this.getMaxCount(stack));
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setCachedState(BlockState state) {
+		super.setCachedState(state);
+		this.facing = state.get(GoldenHopperBlock.FACING);
 	}
 
 	@Override
-	public void setBlockState(BlockState blockState) {
-		super.setBlockState(blockState);
-		this.facing = blockState.getValue(GoldenHopperBlock.FACING);
+	protected Text getContainerName() {
+		return Text.translatable("container.golden_hopper");
 	}
 
-	@Override
-	protected Component getDefaultName() {
-		return DEFAULT_NAME;
-	}
-
-	public static void pushItemsTick(Level level, BlockPos blockPos, BlockState blockState, GoldenHopperBlockEntity goldenHopperBlockEntity) {
-		goldenHopperBlockEntity.cooldownTime--;
-		goldenHopperBlockEntity.tickedGameTime = level.getGameTime();
-		if (!goldenHopperBlockEntity.isOnCooldown()) {
-			goldenHopperBlockEntity.setCooldown(0);
-			tryMoveItems(level, blockPos, blockState, goldenHopperBlockEntity, () -> suckInItems(level, goldenHopperBlockEntity));
+	public static void serverTick(World world, BlockPos pos, BlockState state, GoldenHopperBlockEntity blockEntity) {
+		blockEntity.transferCooldown--;
+		blockEntity.lastTickTime = world.getTime();
+		if (blockEntity.needsCooldown()) {
+			blockEntity.setTransferCooldown(0);
+			insertAndExtract(world, pos, state, blockEntity, () -> extract(world, blockEntity));
 		}
 	}
 
-	private static boolean tryMoveItems(
-			Level level, BlockPos blockPos, BlockState blockState, GoldenHopperBlockEntity goldenHopperBlockEntity, BooleanSupplier booleanSupplier
-	) {
-		if (level.isClientSide()) {
-			return false;
-		} else {
-			if (!goldenHopperBlockEntity.isOnCooldown() && (Boolean)blockState.getValue(GoldenHopperBlock.ENABLED)) {
+	private static void insertAndExtract(World world, BlockPos pos, BlockState state, GoldenHopperBlockEntity blockEntity, BooleanSupplier booleanSupplier) {
+		if (!world.isClient) {
+			if (blockEntity.needsCooldown() && state.get(GoldenHopperBlock.ENABLED)) {
 				boolean bl = false;
-				if (!goldenHopperBlockEntity.isEmpty()) {
-					bl = ejectItems(level, blockPos, goldenHopperBlockEntity);
+				if (!blockEntity.isEmpty()) {
+					bl = insert(world, pos, blockEntity);
 				}
 
-				if (!goldenHopperBlockEntity.inventoryFull()) {
+				if (!blockEntity.isFull()) {
 					bl |= booleanSupplier.getAsBoolean();
 				}
 
 				if (bl) {
-					goldenHopperBlockEntity.setCooldown(MOVE_ITEM_SPEED);
-					setChanged(level, blockPos, blockState);
-					return true;
+					blockEntity.setTransferCooldown(TRANSFER_COOLDOWN);
+					markDirty(world, pos, state);
 				}
 			}
-
-			return false;
 		}
 	}
 
-	private boolean inventoryFull() {
-		for (ItemStack itemStack : this.items) {
-			if (itemStack.isEmpty() || itemStack.getCount() != itemStack.getMaxStackSize()) {
+	private boolean isFull() {
+		for (ItemStack itemStack : this.inventory) {
+			if (itemStack.isEmpty() || itemStack.getCount() != itemStack.getMaxCount()) {
 				return false;
 			}
 		}
@@ -148,122 +136,70 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 		return true;
 	}
 
-	private static boolean ejectItems(Level level, BlockPos blockPos, GoldenHopperBlockEntity hopper) {
+	private static boolean insert(World world, BlockPos pos, GoldenHopperBlockEntity blockEntity) {
+		Inventory inventory = getOutputInventory(world, pos, blockEntity);
+		if (inventory != null) {
+			Direction direction = blockEntity.facing.getOpposite();
+			if (!isInventoryFull(inventory, direction)) {
+				for (int i = 0; i < blockEntity.size(); i++) {
+					ItemStack itemStack = blockEntity.getStack(i);
+					if (!itemStack.isEmpty()) {
+						int j = itemStack.getCount();
+						ItemStack itemStack2 = transfer(blockEntity, inventory, blockEntity.removeStack(i, 1), direction);
+						if (itemStack2.isEmpty()) {
+							inventory.markDirty();
+							return true;
+						}
 
-		BlockPos targetPos = blockPos.relative(hopper.facing);
-
-		Container container = getContainerAt(level, targetPos);
-
-		if (container != null) {
-			Direction direction = hopper.facing.getOpposite();
-
-			if (isFullContainer(container, direction)) {
-				return false;
-			}
-
-			for (int i = 0; i < hopper.getContainerSize(); i++) {
-
-				ItemStack stack = hopper.getItem(i);
-
-				if (!stack.isEmpty()) {
-
-					int count = stack.getCount();
-
-					ItemStack result = addItem(
-							hopper,
-							container,
-							hopper.removeItem(i, 1),
-							direction
-					);
-
-					if (result.isEmpty()) {
-						container.setChanged();
-						return true;
-					}
-
-					stack.setCount(count);
-
-					if (count == 1) {
-						hopper.setItem(i, stack);
+						itemStack.setCount(j);
+						if (j == 1) {
+							blockEntity.setStack(i, itemStack);
+						}
 					}
 				}
-			}
 
-			return false;
-		}
-
-		// Fabric Transfer API fallback
-		Storage<ItemVariant> storage =
-				ItemStorage.SIDED.find(level, targetPos, hopper.facing.getOpposite());
-
-		if (storage == null) return false;
-
-		for (int i = 0; i < hopper.getContainerSize(); i++) {
-
-			ItemStack stack = hopper.getItem(i);
-
-			if (stack.isEmpty()) continue;
-
-			try (Transaction transaction = Transaction.openOuter()) {
-
-				ItemVariant variant = ItemVariant.of(stack);
-
-				long inserted = storage.insert(variant, 1, transaction);
-
-				if (inserted > 0) {
-
-					stack.shrink(1);
-
-					if (stack.isEmpty()) {
-						hopper.setItem(i, ItemStack.EMPTY);
-					}
-
-					transaction.commit();
-					return true;
-				}
 			}
 		}
-
 		return false;
 	}
 
-	private static int[] getSlots(Container container, Direction direction) {
-		if (container instanceof WorldlyContainer worldlyContainer) {
-			return worldlyContainer.getSlotsForFace(direction);
+	private static int[] getAvailableSlots(Inventory inventory, Direction side) {
+		if (inventory instanceof SidedInventory sidedInventory) {
+			return sidedInventory.getAvailableSlots(side);
 		} else {
-			int i = container.getContainerSize();
-			if (i < CACHED_SLOTS.length) {
-				int[] is = CACHED_SLOTS[i];
+			int i = inventory.size();
+			if (i < AVAILABLE_SLOTS_CACHE.length) {
+				int[] is = AVAILABLE_SLOTS_CACHE[i];
 				if (is != null) {
 					return is;
 				} else {
-					int[] js = createFlatSlots(i);
-					CACHED_SLOTS[i] = js;
+					int[] js = indexArray(i);
+					AVAILABLE_SLOTS_CACHE[i] = js;
 					return js;
 				}
 			} else {
-				return createFlatSlots(i);
+				return indexArray(i);
 			}
 		}
 	}
 
-	private static int[] createFlatSlots(int i) {
-		int[] is = new int[i];
-		int j = 0;
+	private static int[] indexArray(int size) {
+		int[] is = new int[size];
+		int i = 0;
 
-		while (j < is.length) {
-			is[j] = j++;
+		while (i < is.length) {
+			is[i] = i++;
 		}
 
 		return is;
 	}
 
-	private static boolean isFullContainer(Container container, Direction direction) {
-		int[] is = getSlots(container, direction);
+	private static boolean isInventoryFull(Inventory inventory, Direction direction) {
+		int[] is = getAvailableSlots(inventory, direction);
 
 		for (int i : is) {
-			ItemStack itemStack = container.getItem(i);
-			if (itemStack.getCount() < itemStack.getMaxStackSize()) {
+			ItemStack itemStack = inventory.getStack(i);
+			if (itemStack.getCount() < itemStack.getMaxCount()) {
 				return false;
 			}
 		}
@@ -271,277 +207,235 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 		return true;
 	}
 
-	public static boolean suckInItems(Level level, Hopper hopper) {
-
-		BlockPos posAbove =
-				BlockPos.containing(
-						hopper.getLevelX(),
-						hopper.getLevelY() + 1,
-						hopper.getLevelZ()
-				);
-
-		Container container = getContainerAt(level, posAbove);
-
-		if (container != null) {
-
+	public static boolean extract(World world, Hopper hopper) {
+		BlockPos blockPos = BlockPos.ofFloored(hopper.getHopperX(), hopper.getHopperY() + 1.0, hopper.getHopperZ());
+		BlockState blockState = world.getBlockState(blockPos);
+		Inventory inventory = getInputInventory(world, hopper, blockPos, blockState);
+		if (inventory != null) {
 			Direction direction = Direction.DOWN;
 
-			for (int slot : getSlots(container, direction)) {
-
-				if (tryTakeInItemFromSlot(hopper, container, slot, direction)) {
+			for (int i : getAvailableSlots(inventory, direction)) {
+				if (extract(hopper, inventory, i, direction)) {
 					return true;
 				}
 			}
 
-			return false;
-		}
-
-		// Fabric Transfer API fallback
-		Storage<ItemVariant> storage =
-				ItemStorage.SIDED.find(level, posAbove, Direction.DOWN);
-
-		if (storage != null) {
-
-			try (Transaction transaction = Transaction.openOuter()) {
-
-				for (StorageView<ItemVariant> view : storage) {
-
-					if (view.isResourceBlank()) continue;
-
-					ItemVariant resource = view.getResource();
-
-					long extracted = view.extract(resource, 1, transaction);
-
-					if (extracted > 0) {
-
-						ItemStack stack = resource.toStack(1);
-
-						if (addItem(null, (Container) hopper, stack, null).isEmpty()) {
-
-							transaction.commit();
-							return true;
-						}
+		} else {
+			boolean bl = hopper.canBlockFromAbove() && blockState.isFullCube(world, blockPos) && !blockState.isIn(BlockTags.DOES_NOT_BLOCK_HOPPERS);
+			if (!bl) {
+				for (ItemEntity itemEntity : getInputItemEntities(world, hopper)) {
+					if (extract(hopper, itemEntity)) {
+						return true;
 					}
 				}
 			}
+
 		}
-
-		for (ItemEntity itemEntity : getItemsAtAndAbove(level, hopper)) {
-
-			if (addItem(hopper, itemEntity)) {
-				return true;
-			}
-		}
-
 		return false;
 	}
 
-	private static boolean tryTakeInItemFromSlot(Hopper hopper, Container container, int i, Direction direction) {
-		ItemStack itemStack = container.getItem(i);
-		if (!itemStack.isEmpty() && canTakeItemFromContainer(hopper, container, itemStack, i, direction)) {
-			int j = itemStack.getCount();
-			ItemStack itemStack2 = addItem(container, hopper, container.removeItem(i, 1), null);
+	private static boolean extract(Hopper hopper, Inventory inventory, int slot, Direction side) {
+		ItemStack itemStack = inventory.getStack(slot);
+		if (!itemStack.isEmpty() && canExtract(hopper, inventory, itemStack, slot, side)) {
+			int i = itemStack.getCount();
+			ItemStack itemStack2 = transfer(inventory, hopper, inventory.removeStack(slot, 1), null);
 			if (itemStack2.isEmpty()) {
-				container.setChanged();
+				inventory.markDirty();
 				return true;
 			}
 
-			itemStack.setCount(j);
-			if (j == 1) {
-				container.setItem(i, itemStack);
+			itemStack.setCount(i);
+			if (i == 1) {
+				inventory.setStack(slot, itemStack);
 			}
 		}
 
 		return false;
 	}
 
-	public static boolean addItem(Container container, ItemEntity itemEntity) {
+	public static boolean extract(Inventory inventory, ItemEntity itemEntity) {
 		boolean bl = false;
-		ItemStack itemStack = itemEntity.getItem().copy();
-		ItemStack itemStack2 = addItem(null, container, itemStack, null);
+		ItemStack itemStack = itemEntity.getStack().copy();
+		ItemStack itemStack2 = transfer(null, inventory, itemStack, null);
 		if (itemStack2.isEmpty()) {
 			bl = true;
-			itemEntity.setItem(ItemStack.EMPTY);
+			itemEntity.setStack(ItemStack.EMPTY);
 			itemEntity.discard();
 		} else {
-			itemEntity.setItem(itemStack2);
+			itemEntity.setStack(itemStack2);
 		}
 
 		return bl;
 	}
 
-	public static ItemStack addItem(@Nullable Container container, Container container2, ItemStack itemStack, @Nullable Direction direction) {
-		if (container2 instanceof WorldlyContainer worldlyContainer && direction != null) {
-			int[] is = worldlyContainer.getSlotsForFace(direction);
+	public static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, @Nullable Direction side) {
+		if (to instanceof SidedInventory sidedInventory && side != null) {
+			int[] is = sidedInventory.getAvailableSlots(side);
 
-			for (int i = 0; i < is.length && !itemStack.isEmpty(); i++) {
-				itemStack = tryMoveInItem(container, container2, itemStack, is[i], direction);
+			for (int i = 0; i < is.length && !stack.isEmpty(); i++) {
+				stack = transfer(from, to, stack, is[i], side);
 			}
 		} else {
-			int j = container2.getContainerSize();
+			int j = to.size();
 
-			for (int i = 0; i < j && !itemStack.isEmpty(); i++) {
-				itemStack = tryMoveInItem(container, container2, itemStack, i, direction);
+			for (int i = 0; i < j && !stack.isEmpty(); i++) {
+				stack = transfer(from, to, stack, i, side);
 			}
 		}
 
-		return itemStack;
+		return stack;
 	}
 
-	private static boolean canPlaceItemInContainer(Container container, ItemStack itemStack, int i, @Nullable Direction direction) {
-		return !container.canPlaceItem(i, itemStack)
-				? false
-				: !(container instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canPlaceItemThroughFace(i, itemStack, direction));
+	private static boolean canInsert(Inventory inventory, ItemStack stack, int slot, @Nullable Direction side) {
+		return inventory.isValid(slot, stack) && !(inventory instanceof SidedInventory sidedInventory && !sidedInventory.canInsert(slot, stack, side));
 	}
 
-	private static boolean canTakeItemFromContainer(Container container, Container container2, ItemStack itemStack, int i, Direction direction) {
-		return !container2.canTakeItem(container, i, itemStack)
-				? false
-				: !(container2 instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canTakeItemThroughFace(i, itemStack, direction));
+	private static boolean canExtract(Inventory hopperInventory, Inventory fromInventory, ItemStack stack, int slot, Direction facing) {
+		return fromInventory.canTransferTo(hopperInventory, slot, stack) && !(fromInventory instanceof SidedInventory sidedInventory && !sidedInventory.canExtract(slot, stack, facing));
 	}
 
-	private static ItemStack tryMoveInItem(@Nullable Container container, Container container2, ItemStack itemStack, int i, @Nullable Direction direction) {
-		ItemStack itemStack2 = container2.getItem(i);
-		if (canPlaceItemInContainer(container2, itemStack, i, direction)) {
+	private static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, int slot, @Nullable Direction side) {
+		ItemStack itemStack = to.getStack(slot);
+		if (canInsert(to, stack, slot, side)) {
 			boolean bl = false;
-			boolean bl2 = container2.isEmpty();
-			if (itemStack2.isEmpty()) {
-				container2.setItem(i, itemStack);
-				itemStack = ItemStack.EMPTY;
+			boolean bl2 = to.isEmpty();
+			if (itemStack.isEmpty()) {
+				to.setStack(slot, stack);
+				stack = ItemStack.EMPTY;
 				bl = true;
-			} else if (canMergeItems(itemStack2, itemStack)) {
-				int j = itemStack.getMaxStackSize() - itemStack2.getCount();
-				int k = Math.min(itemStack.getCount(), j);
-				itemStack.shrink(k);
-				itemStack2.grow(k);
-				bl = k > 0;
+			} else if (canMergeItems(itemStack, stack)) {
+				int i = stack.getMaxCount() - itemStack.getCount();
+				int j = Math.min(stack.getCount(), i);
+				stack.decrement(j);
+				itemStack.increment(j);
+				bl = j > 0;
 			}
 
 			if (bl) {
-				if (bl2 && container2 instanceof GoldenHopperBlockEntity goldenHopperBlockEntity && !goldenHopperBlockEntity.isOnCustomCooldown()) {
-					int k = 0;
-					if (container instanceof GoldenHopperBlockEntity goldenHopperBlockEntity2 && goldenHopperBlockEntity.tickedGameTime >= goldenHopperBlockEntity2.tickedGameTime) {
-						k = 1;
+				if (bl2 && to instanceof GoldenHopperBlockEntity hopperBlockEntity && !hopperBlockEntity.isDisabled()) {
+					int j = 0;
+					if (from instanceof GoldenHopperBlockEntity hopperBlockEntity2 && hopperBlockEntity.lastTickTime >= hopperBlockEntity2.lastTickTime) {
+						j = 1;
 					}
 
-					goldenHopperBlockEntity.setCooldown(MOVE_ITEM_SPEED - k);
+					hopperBlockEntity.setTransferCooldown(TRANSFER_COOLDOWN - j);
 				}
 
-				container2.setChanged();
+				to.markDirty();
 			}
 		}
 
-		return itemStack;
+		return stack;
 	}
 
 	@Nullable
-	private static Container getAttachedContainer(Level level, BlockPos blockPos, GoldenHopperBlockEntity goldenHopperBlockEntity) {
-		return getContainerAt(level, blockPos.relative(goldenHopperBlockEntity.facing));
+	private static Inventory getOutputInventory(World world, BlockPos pos, GoldenHopperBlockEntity blockEntity) {
+		return getInventoryAt(world, pos.offset(blockEntity.facing));
 	}
 
 	@Nullable
-	private static Container getSourceContainer(Level level, Hopper hopper, BlockPos blockPos, BlockState blockState) {
-		return getContainerAt(level, blockPos, blockState, hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
+	private static Inventory getInputInventory(World world, Hopper hopper, BlockPos pos, BlockState state) {
+		return getInventoryAt(world, pos, state, hopper.getHopperX(), hopper.getHopperY() + 1.0, hopper.getHopperZ());
 	}
 
-	public static List<ItemEntity> getItemsAtAndAbove(Level level, Hopper hopper) {
-		AABB aABB = hopper.getSuckAabb().move(hopper.getLevelX() - 0.5, hopper.getLevelY() - 0.5, hopper.getLevelZ() - 0.5);
-		return level.getEntitiesOfClass(ItemEntity.class, aABB, EntitySelector.ENTITY_STILL_ALIVE);
-	}
-
-	@Nullable
-	public static Container getContainerAt(Level level, BlockPos blockPos) {
-		return getContainerAt(level, blockPos, level.getBlockState(blockPos), blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5);
+	public static List<ItemEntity> getInputItemEntities(World world, Hopper hopper) {
+		Box box = hopper.getInputAreaShape().offset(hopper.getHopperX() - 0.5, hopper.getHopperY() - 0.5, hopper.getHopperZ() - 0.5);
+		return world.getEntitiesByClass(ItemEntity.class, box, EntityPredicates.VALID_ENTITY);
 	}
 
 	@Nullable
-	private static Container getContainerAt(Level level, BlockPos blockPos, BlockState blockState, double d, double e, double f) {
-		Container container = getBlockContainer(level, blockPos, blockState);
-		if (container == null) {
-			container = getEntityContainer(level, d, e, f);
+	public static Inventory getInventoryAt(World world, BlockPos pos) {
+		return getInventoryAt(world, pos, world.getBlockState(pos), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+	}
+
+	@Nullable
+	private static Inventory getInventoryAt(World world, BlockPos pos, BlockState state, double x, double y, double z) {
+		Inventory inventory = getBlockInventoryAt(world, pos, state);
+		if (inventory == null) {
+			inventory = getEntityInventoryAt(world, x, y, z);
 		}
 
-		return container;
+		return inventory;
 	}
 
 	@Nullable
-	private static Container getBlockContainer(Level level, BlockPos blockPos, BlockState blockState) {
-		Block block = blockState.getBlock();
-		if (block instanceof WorldlyContainerHolder) {
-			return ((WorldlyContainerHolder)block).getContainer(blockState, level, blockPos);
-		} else if (blockState.hasBlockEntity() && level.getBlockEntity(blockPos) instanceof Container container) {
-			if (container instanceof ChestBlockEntity && block instanceof ChestBlock) {
-				container = ChestBlock.getContainer((ChestBlock)block, blockState, level, blockPos, true);
+	private static Inventory getBlockInventoryAt(World world, BlockPos pos, BlockState state) {
+		Block block = state.getBlock();
+		if (block instanceof InventoryProvider) {
+			return ((InventoryProvider)block).getInventory(state, world, pos);
+		} else if (state.hasBlockEntity() && world.getBlockEntity(pos) instanceof Inventory inventory) {
+			if (inventory instanceof ChestBlockEntity && block instanceof ChestBlock) {
+				inventory = ChestBlock.getInventory((ChestBlock)block, state, world, pos, true);
 			}
 
-			return container;
+			return inventory;
 		} else {
 			return null;
 		}
 	}
 
 	@Nullable
-	private static Container getEntityContainer(Level level, double d, double e, double f) {
-		List<Entity> list = level.getEntities((Entity)null, new AABB(d - 0.5, e - 0.5, f - 0.5, d + 0.5, e + 0.5, f + 0.5), EntitySelector.CONTAINER_ENTITY_SELECTOR);
-		return !list.isEmpty() ? (Container)list.get(level.random.nextInt(list.size())) : null;
+	private static Inventory getEntityInventoryAt(World world, double x, double y, double z) {
+		List<Entity> list = world.getOtherEntities(null, new Box(x - 0.5, y - 0.5, z - 0.5, x + 0.5, y + 0.5, z + 0.5), EntityPredicates.VALID_INVENTORIES);
+		return !list.isEmpty() ? (Inventory)list.get(world.random.nextInt(list.size())) : null;
 	}
 
-	private static boolean canMergeItems(ItemStack itemStack, ItemStack itemStack2) {
-		return itemStack.getCount() <= itemStack.getMaxStackSize() && ItemStack.isSameItemSameComponents(itemStack, itemStack2);
-	}
-
-	@Override
-	public double getLevelX() {
-		return this.worldPosition.getX() + 0.5;
+	private static boolean canMergeItems(ItemStack first, ItemStack second) {
+		return first.getCount() <= first.getMaxCount() && ItemStack.areItemsAndComponentsEqual(first, second);
 	}
 
 	@Override
-	public double getLevelY() {
-		return this.worldPosition.getY() + 0.5;
+	public double getHopperX() {
+		return this.pos.getX() + 0.5;
 	}
 
 	@Override
-	public double getLevelZ() {
-		return this.worldPosition.getZ() + 0.5;
+	public double getHopperY() {
+		return this.pos.getY() + 0.5;
 	}
 
 	@Override
-	public boolean isGridAligned() {
+	public double getHopperZ() {
+		return this.pos.getZ() + 0.5;
+	}
+
+	@Override
+	public boolean canBlockFromAbove() {
 		return true;
 	}
 
-	private void setCooldown(int i) {
-		this.cooldownTime = i;
+	private void setTransferCooldown(int transferCooldown) {
+		this.transferCooldown = transferCooldown;
 	}
 
-	private boolean isOnCooldown() {
-		return this.cooldownTime > 0;
+	private boolean needsCooldown() {
+		return this.transferCooldown <= 0;
 	}
 
-	private boolean isOnCustomCooldown() {
-		return this.cooldownTime > MOVE_ITEM_SPEED;
-	}
-
-	@Override
-	protected NonNullList<ItemStack> getItems() {
-		return this.items;
+	private boolean isDisabled() {
+		return this.transferCooldown > TRANSFER_COOLDOWN;
 	}
 
 	@Override
-	protected void setItems(NonNullList<ItemStack> nonNullList) {
-		this.items = nonNullList;
+	protected DefaultedList<ItemStack> getHeldStacks() {
+		return this.inventory;
 	}
 
-	public static void entityInside(Level level, BlockPos blockPos, BlockState blockState, Entity entity, GoldenHopperBlockEntity goldenHopperBlockEntity) {
+	@Override
+	protected void setHeldStacks(DefaultedList<ItemStack> inventory) {
+		this.inventory = inventory;
+	}
+
+	public static void onEntityCollided(World world, BlockPos pos, BlockState state, Entity entity, GoldenHopperBlockEntity blockEntity) {
 		if (entity instanceof ItemEntity itemEntity
-				&& !itemEntity.getItem().isEmpty()
-				&& entity.getBoundingBox().move(-blockPos.getX(), -blockPos.getY(), -blockPos.getZ()).intersects(goldenHopperBlockEntity.getSuckAabb())) {
-			tryMoveItems(level, blockPos, blockState, goldenHopperBlockEntity, () -> addItem(goldenHopperBlockEntity, itemEntity));
+				&& !itemEntity.getStack().isEmpty()
+				&& entity.getBoundingBox().offset(-pos.getX(), -pos.getY(), -pos.getZ()).intersects(blockEntity.getInputAreaShape())) {
+			insertAndExtract(world, pos, state, blockEntity, () -> extract(blockEntity, itemEntity));
 		}
 	}
 
 	@Override
-	protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
-		return new GoldenHopperMenu(i, inventory, this);
+	protected ScreenHandler createScreenHandler(int syncId, PlayerInventory playerInventory) {
+		return new GoldenHopperScreenHandler(syncId, playerInventory, this);
 	}
 }
