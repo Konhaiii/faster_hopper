@@ -1,0 +1,14 @@
+{
+  "itemGroup.faster_hopper": "Faster Hopper",
+
+  "block.faster_hopper.golden_hopper": "Золота лійка",
+
+  "item.faster_hopper.golden_hopper": "Золота лійка",
+  "item.faster_hopper.golden_hopper_minecart": "Вагонетка зі золотою лійкою",
+
+  "entity.faster_hopper.golden_hopper_minecart": "Вагонетка зі золотою лійкою",
+
+  "container.golden_hopper": "Золота лійка",
+
+  "modmenu.descriptionTranslation.faster_hopper": "Майструйте золоті лійки, щоби швидше транспортувати предмети."
+}
