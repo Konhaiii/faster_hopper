@@ -17,6 +17,7 @@ public class ModConfigs {
 	private static final Path CONFIG_PATH = Path.of("config", "faster_hopper.json");
 
 	public int goldenHopperCooldownTick = 2;
+
 	public static ModConfigs loadConfig() {
 		if (!Files.exists(CONFIG_PATH)) {
 			ModConfigs defaultConfig = new ModConfigs();

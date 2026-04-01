@@ -39,8 +39,6 @@ public class ModItems {
 	public static final CreativeModeTab FASTER_HOPPER_CREATIVE_TAB = CreativeModeTab.builder(CreativeModeTab.Row.TOP, 1)
 			.icon(() -> new ItemStack(GOLDEN_HOPPER_MINECART))
 			.title(Component.translatable("itemGroup.faster_hopper"))
-			.displayItems((params, output) -> {
-				output.accept(GOLDEN_HOPPER_MINECART);
-			})
+			.displayItems((_, output) -> output.accept(GOLDEN_HOPPER_MINECART))
 			.build();
 }

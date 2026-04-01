@@ -8,22 +8,23 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.NonNull;
 
 public class GoldenHopperMenu extends AbstractContainerMenu {
-	public static final int CONTAINER_SIZE = 7;
 	private final Container golden_hopper;
+	public static final int SLOT_COUNT = 7;
 
 	public GoldenHopperMenu(int i, Inventory inventory) {
-		this(i, inventory, new SimpleContainer(CONTAINER_SIZE));
+		this(i, inventory, new SimpleContainer(SLOT_COUNT));
 	}
 
 	public GoldenHopperMenu(int i, Inventory inventory, Container container) {
 		super(FasterHopper.GOLDEN_HOPPER_MENU, i);
 		this.golden_hopper = container;
-		checkContainerSize(container, CONTAINER_SIZE);
+		checkContainerSize(container, SLOT_COUNT);
 		container.startOpen(inventory.player);
 
-		for (int j = 0; j < CONTAINER_SIZE; j++) {
+		for (int j = 0; j < SLOT_COUNT; j++) {
 			this.addSlot(new Slot(container, j, 26 + j * 18, 20));
 		}
 
@@ -31,15 +32,15 @@ public class GoldenHopperMenu extends AbstractContainerMenu {
 	}
 
 	@Override
-	public boolean stillValid(Player player) {
+	public boolean stillValid(@NonNull Player player) {
 		return this.golden_hopper.stillValid(player);
 	}
 
 	@Override
-	public ItemStack quickMoveStack(Player player, int i) {
+	public @NonNull ItemStack quickMoveStack(@NonNull Player player, int i) {
 		ItemStack itemStack = ItemStack.EMPTY;
 		Slot slot = this.slots.get(i);
-		if (slot != null && slot.hasItem()) {
+		if (slot.hasItem()) {
 			ItemStack itemStack2 = slot.getItem();
 			itemStack = itemStack2.copy();
 			if (i < this.golden_hopper.getContainerSize()) {
@@ -61,7 +62,7 @@ public class GoldenHopperMenu extends AbstractContainerMenu {
 	}
 
 	@Override
-	public void removed(Player player) {
+	public void removed(@NonNull Player player) {
 		super.removed(player);
 		this.golden_hopper.stopOpen(player);
 	}

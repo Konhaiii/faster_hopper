@@ -13,9 +13,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.NonNull;
 
 public class MinecartGoldenHopper extends AbstractMinecartContainer implements net.minecraft.world.level.block.entity.Hopper {
-	private static final boolean DEFAULT_ENABLED = true;
 	private boolean enabled = true;
 	private boolean consumedItemThisFrame = false;
 
@@ -24,7 +24,7 @@ public class MinecartGoldenHopper extends AbstractMinecartContainer implements n
 	}
 
 	@Override
-	public net.minecraft.world.level.block.state.BlockState getDefaultDisplayBlockState() {
+	public net.minecraft.world.level.block.state.@NonNull BlockState getDefaultDisplayBlockState() {
 		return ModBlocks.GOLDEN_HOPPER.defaultBlockState();
 	}
 
@@ -39,7 +39,7 @@ public class MinecartGoldenHopper extends AbstractMinecartContainer implements n
 	}
 
 	@Override
-	public void activateMinecart(ServerLevel serverLevel, int i, int j, int k, boolean bl) {
+	public void activateMinecart(@NonNull ServerLevel serverLevel, int i, int j, int k, boolean bl) {
 		boolean bl2 = !bl;
 		if (bl2 != this.isEnabled()) {
 			this.setEnabled(bl2);
@@ -82,7 +82,7 @@ public class MinecartGoldenHopper extends AbstractMinecartContainer implements n
 	}
 
 	@Override
-	protected double makeStepAlongTrack(BlockPos blockPos, net.minecraft.world.level.block.state.properties.RailShape railShape, double d) {
+	protected double makeStepAlongTrack(@NonNull BlockPos blockPos, net.minecraft.world.level.block.state.properties.@NonNull RailShape railShape, double d) {
 		double e = super.makeStepAlongTrack(blockPos, railShape, d);
 		this.tryConsumeItems();
 		return e;
@@ -111,29 +111,29 @@ public class MinecartGoldenHopper extends AbstractMinecartContainer implements n
 	}
 
 	@Override
-	protected net.minecraft.world.item.Item getDropItem() {
+	protected net.minecraft.world.item.@NonNull Item getDropItem() {
 		return ModItems.GOLDEN_HOPPER_MINECART;
 	}
 
 	@Override
-	public net.minecraft.world.item.ItemStack getPickResult() {
+	public net.minecraft.world.item.@NonNull ItemStack getPickResult() {
 		return new net.minecraft.world.item.ItemStack(ModItems.GOLDEN_HOPPER_MINECART);
 	}
 
 	@Override
-	protected void addAdditionalSaveData(ValueOutput valueOutput) {
+	protected void addAdditionalSaveData(@NonNull ValueOutput valueOutput) {
 		super.addAdditionalSaveData(valueOutput);
 		valueOutput.putBoolean("Enabled", this.enabled);
 	}
 
 	@Override
-	protected void readAdditionalSaveData(ValueInput valueInput) {
+	protected void readAdditionalSaveData(@NonNull ValueInput valueInput) {
 		super.readAdditionalSaveData(valueInput);
 		this.enabled = valueInput.getBooleanOr("Enabled", true);
 	}
 
 	@Override
-	public AbstractContainerMenu createMenu(int i, Inventory inventory) {
+	public @NonNull AbstractContainerMenu createMenu(int i, @NonNull Inventory inventory) {
 		return new GoldenHopperMenu(i, inventory, this);
 	}
 }

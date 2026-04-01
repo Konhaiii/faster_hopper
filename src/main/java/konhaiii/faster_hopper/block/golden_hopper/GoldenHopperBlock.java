@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
@@ -37,6 +36,7 @@ import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
@@ -50,7 +50,7 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 	private final Map<Direction, VoxelShape> interactionShapes;
 
 	@Override
-	public MapCodec<GoldenHopperBlock> codec() {
+	public @NonNull MapCodec<GoldenHopperBlock> codec() {
 		return CODEC;
 	}
 
@@ -70,18 +70,18 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 		VoxelShape voxelShape3 = Shapes.join(voxelShape2, voxelShape, BooleanOp.ONLY_FIRST);
 		Map<Direction, VoxelShape> map = Shapes.rotateAll(Block.boxZ(4.0, 4.0, 8.0, 0.0, 8.0), new Vec3(8.0, 6.0, 8.0).scale(0.0625));
 		return this.getShapeForEachState(
-				blockState -> Shapes.or(voxelShape3, Shapes.join((VoxelShape)map.get(blockState.getValue(FACING)), Shapes.block(), BooleanOp.AND)), new Property[]{ENABLED}
-		);
+				blockState -> Shapes.or(voxelShape3, Shapes.join(map.get(blockState.getValue(FACING)), Shapes.block(), BooleanOp.AND)),
+				ENABLED);
 	}
 
 	@Override
-	protected VoxelShape getShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos, CollisionContext collisionContext) {
-		return (VoxelShape)this.shapes.apply(blockState);
+	protected @NonNull VoxelShape getShape(@NonNull BlockState blockState, @NonNull BlockGetter blockGetter, @NonNull BlockPos blockPos, @NonNull CollisionContext collisionContext) {
+		return this.shapes.apply(blockState);
 	}
 
 	@Override
-	protected VoxelShape getInteractionShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos) {
-		return (VoxelShape)this.interactionShapes.get(blockState.getValue(FACING));
+	protected @NonNull VoxelShape getInteractionShape(BlockState blockState, @NonNull BlockGetter blockGetter, @NonNull BlockPos blockPos) {
+		return this.interactionShapes.get(blockState.getValue(FACING));
 	}
 
 	@Override
@@ -91,25 +91,25 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
+	public BlockEntity newBlockEntity(@NonNull BlockPos blockPos, @NonNull BlockState blockState) {
 		return new GoldenHopperBlockEntity(blockPos, blockState);
 	}
 
 	@Nullable
 	@Override
-	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> blockEntityType) {
+	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, @NonNull BlockState blockState, @NonNull BlockEntityType<T> blockEntityType) {
 		return level.isClientSide() ? null : createTickerHelper(blockEntityType, ModBlocks.GOLDEN_HOPPER_BLOCK_ENTITY, GoldenHopperBlockEntity::pushItemsTick);
 	}
 
 	@Override
-	protected void onPlace(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl) {
+	protected void onPlace(BlockState blockState, @NonNull Level level, @NonNull BlockPos blockPos, BlockState blockState2, boolean bl) {
 		if (!blockState2.is(blockState.getBlock())) {
 			this.checkPoweredState(level, blockPos, blockState);
 		}
 	}
 
 	@Override
-	protected InteractionResult useWithoutItem(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
+	protected @NonNull InteractionResult useWithoutItem(@NonNull BlockState blockState, Level level, @NonNull BlockPos blockPos, @NonNull Player player, @NonNull BlockHitResult blockHitResult) {
 		if (!level.isClientSide() && level.getBlockEntity(blockPos) instanceof GoldenHopperBlockEntity goldenHopperBlockEntity) {
 			player.openMenu(goldenHopperBlockEntity);
 			player.awardStat(Stats.INSPECT_HOPPER);
@@ -119,39 +119,39 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	protected void neighborChanged(BlockState blockState, Level level, BlockPos blockPos, Block block, @Nullable Orientation orientation, boolean bl) {
+	protected void neighborChanged(@NonNull BlockState blockState, @NonNull Level level, @NonNull BlockPos blockPos, @NonNull Block block, @Nullable Orientation orientation, boolean bl) {
 		this.checkPoweredState(level, blockPos, blockState);
 	}
 
 	private void checkPoweredState(Level level, BlockPos blockPos, BlockState blockState) {
 		boolean bl = !level.hasNeighborSignal(blockPos);
-		if (bl != (Boolean)blockState.getValue(ENABLED)) {
+		if (bl != blockState.getValue(ENABLED)) {
 			level.setBlock(blockPos, blockState.setValue(ENABLED, bl), 2);
 		}
 	}
 
 	@Override
-	protected void affectNeighborsAfterRemoval(BlockState blockState, ServerLevel serverLevel, BlockPos blockPos, boolean bl) {
+	protected void affectNeighborsAfterRemoval(@NonNull BlockState blockState, @NonNull ServerLevel serverLevel, @NonNull BlockPos blockPos, boolean bl) {
 		Containers.updateNeighboursAfterDestroy(blockState, serverLevel, blockPos);
 	}
 
 	@Override
-	protected boolean hasAnalogOutputSignal(BlockState blockState) {
+	protected boolean hasAnalogOutputSignal(@NonNull BlockState blockState) {
 		return true;
 	}
 
 	@Override
-	protected int getAnalogOutputSignal(BlockState blockState, Level level, BlockPos blockPos, Direction direction) {
+	protected int getAnalogOutputSignal(@NonNull BlockState blockState, Level level, @NonNull BlockPos blockPos, @NonNull Direction direction) {
 		return AbstractContainerMenu.getRedstoneSignalFromBlockEntity(level.getBlockEntity(blockPos));
 	}
 
 	@Override
-	protected BlockState rotate(BlockState blockState, Rotation rotation) {
+	protected @NonNull BlockState rotate(BlockState blockState, Rotation rotation) {
 		return blockState.setValue(FACING, rotation.rotate(blockState.getValue(FACING)));
 	}
 
 	@Override
-	protected BlockState mirror(BlockState blockState, Mirror mirror) {
+	protected @NonNull BlockState mirror(BlockState blockState, Mirror mirror) {
 		return blockState.rotate(mirror.getRotation(blockState.getValue(FACING)));
 	}
 
@@ -162,7 +162,7 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 
 	@Override
 	protected void entityInside(
-			BlockState blockState, Level level, BlockPos blockPos, Entity entity, InsideBlockEffectApplier insideBlockEffectApplier, boolean bl
+			@NonNull BlockState blockState, Level level, @NonNull BlockPos blockPos, @NonNull Entity entity, @NonNull InsideBlockEffectApplier insideBlockEffectApplier, boolean bl
 	) {
 		BlockEntity blockEntity = level.getBlockEntity(blockPos);
 		if (blockEntity instanceof GoldenHopperBlockEntity) {
@@ -171,7 +171,7 @@ public class GoldenHopperBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	protected boolean isPathfindable(BlockState blockState, PathComputationType pathComputationType) {
+	protected boolean isPathfindable(@NonNull BlockState blockState, @NonNull PathComputationType pathComputationType) {
 		return false;
 	}
 }
