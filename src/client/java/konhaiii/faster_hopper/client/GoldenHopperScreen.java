@@ -1,4 +1,4 @@
-package konhaiii.faster_hopper;
+package konhaiii.faster_hopper.client;
 
 import konhaiii.faster_hopper.block.GoldenHopperScreenHandler;
 import net.fabricmc.api.EnvType;
@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier;
 
 @Environment(EnvType.CLIENT)
 public class GoldenHopperScreen extends HandledScreen<GoldenHopperScreenHandler> {
-	private static final Identifier TEXTURE = new Identifier("faster_hopper:textures/gui/container/golden_hopper.png");
+	private static final Identifier TEXTURE = Identifier.of("faster_hopper:textures/gui/container/golden_hopper.png");
 
 	public GoldenHopperScreen(GoldenHopperScreenHandler handler, PlayerInventory inventory, Text title) {
 		super(handler, inventory, title);
@@ -21,7 +21,7 @@ public class GoldenHopperScreen extends HandledScreen<GoldenHopperScreenHandler>
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		this.renderBackground(context);
+		this.renderBackground(context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
 		this.drawMouseoverTooltip(context, mouseX, mouseY);
 	}

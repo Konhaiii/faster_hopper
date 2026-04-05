@@ -2,20 +2,20 @@
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
-    "H": {
+    "C": {
       "item": "minecraft:hopper"
     },
-    "G": {
+    "I": {
       "item": "minecraft:gold_ingot"
     }
   },
   "pattern": [
-    "G G",
-    "GHG",
-    " G "
+    "I I",
+    "ICI",
+    " I "
   ],
   "result": {
-    "item": "faster_hopper:golden_hopper"
-  },
-  "show_notification": true
+    "count": 1,
+    "id": "faster_hopper:golden_hopper"
+  }
 }

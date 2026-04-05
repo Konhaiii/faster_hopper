@@ -3,7 +3,6 @@ package konhaiii.faster_hopper;
 import konhaiii.faster_hopper.block.GoldenHopperBlock;
 import konhaiii.faster_hopper.block.GoldenHopperBlockEntity;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.MapColor;
@@ -26,7 +25,7 @@ public class FHBlock {
 
 	public static Block register(Block block, String name, boolean shouldRegisterItem) {
 		// Register the block and its item.
-		Identifier id = new Identifier(FasterHopper.MOD_ID, name);
+		Identifier id = Identifier.of(FasterHopper.MOD_ID, name);
 
 		// Sometimes, you may not want to register an item for the block.
 		// Eg: if it's a technical block like `minecraft:air` or `minecraft:end_gateway`
@@ -44,7 +43,7 @@ public class FHBlock {
 
 	public static final BlockEntityType<GoldenHopperBlockEntity> GOLDEN_HOPPER_BLOCK_ENTITY = register(
 			"golden_hopper",
-			FabricBlockEntityTypeBuilder.create(GoldenHopperBlockEntity::new, GOLDEN_HOPPER).build()
+			BlockEntityType.Builder.create(GoldenHopperBlockEntity::new, GOLDEN_HOPPER).build()
 	);
 
 	public static void initialize() {
