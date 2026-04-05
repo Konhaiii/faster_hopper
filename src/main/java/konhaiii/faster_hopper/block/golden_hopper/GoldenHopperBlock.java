@@ -2,11 +2,11 @@ package konhaiii.faster_hopper.block.golden_hopper;
 
 import com.google.common.collect.ImmutableMap;
 import com.mojang.serialization.MapCodec;
-import java.util.Map;
-import java.util.function.Function;
-
 import konhaiii.faster_hopper.block.ModBlocks;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.BlockWithEntity;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
@@ -38,6 +38,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.block.WireOrientation;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
+import java.util.function.Function;
+
 public class GoldenHopperBlock extends BlockWithEntity {
 	public static final MapCodec<GoldenHopperBlock> CODEC = createCodec(GoldenHopperBlock::new);
 	public static final EnumProperty<Direction> FACING = Properties.HOPPER_FACING;
@@ -50,7 +53,7 @@ public class GoldenHopperBlock extends BlockWithEntity {
 		return CODEC;
 	}
 
-	public GoldenHopperBlock(AbstractBlock.Settings settings) {
+	public GoldenHopperBlock(Settings settings) {
 		super(settings);
 		this.setDefaultState(this.stateManager.getDefaultState().with(FACING, Direction.DOWN).with(ENABLED, true));
 		VoxelShape voxelShape = Block.createColumnShape(12.0, 11.0, 16.0);

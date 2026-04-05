@@ -13,7 +13,6 @@ import net.minecraft.util.Identifier;
 
 public class ModEntities {
 	public static final EntityType<GoldenHopperMinecartEntity> GOLDEN_HOPPER_MINECART = register(
-			"golden_hopper_minecart",
 			EntityType.Builder.create(GoldenHopperMinecartEntity::new, SpawnGroup.MISC)
 					.dropsNothing()
 					.dimensions(0.98F, 0.7F)
@@ -21,12 +20,12 @@ public class ModEntities {
 					.maxTrackingRange(8)
 	);
 
-	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> type) {
-		return Registry.register(Registries.ENTITY_TYPE, keyOf(id), type.build(keyOf(id)));
+	private static <T extends Entity> EntityType<T> register(EntityType.Builder<T> type) {
+		return Registry.register(Registries.ENTITY_TYPE, keyOf(), type.build(keyOf()));
 	}
 
-	private static RegistryKey<EntityType<?>> keyOf(String id) {
-		return RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of(FasterHopper.MOD_ID, id));
+	private static RegistryKey<EntityType<?>> keyOf() {
+		return RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of(FasterHopper.MOD_ID, "golden_hopper_minecart"));
 	}
 
 	public static void initialize() {}

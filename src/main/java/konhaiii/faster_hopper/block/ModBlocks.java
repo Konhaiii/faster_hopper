@@ -25,55 +25,47 @@ import java.util.function.Function;
 public class ModBlocks {
 
 	public static final Block GOLDEN_HOPPER = register(
-			"golden_hopper",
 			GoldenHopperBlock::new,
-			AbstractBlock.Settings.create().mapColor(MapColor.GOLD).requiresTool().strength(3.0F, 4.8F).sounds(BlockSoundGroup.METAL).nonOpaque(),
-			true
+			AbstractBlock.Settings.create().mapColor(MapColor.GOLD).requiresTool().strength(3.0F, 4.8F).sounds(BlockSoundGroup.METAL).nonOpaque()
 	);
 
-	private static Block register(String name, Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings, boolean shouldRegisterItem) {
+	private static Block register(Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings) {
 		// Create a registry key for the block
-		RegistryKey<Block> blockKey = keyOfBlock(name);
+		RegistryKey<Block> blockKey = keyOfBlock();
 		// Create the block instance
 		Block block = blockFactory.apply(settings.registryKey(blockKey));
 
 		// Sometimes, you may not want to register an item for the block.
 		// Eg: if it's a technical block like `minecraft:moving_piston` or `minecraft:end_gateway`
-		if (shouldRegisterItem) {
-			// Items need to be registered with a different type of registry key, but the ID
-			// can be the same.
-			RegistryKey<Item> itemKey = keyOfItem(name);
+		// Items need to be registered with a different type of registry key, but the ID
+		// can be the same.
+		RegistryKey<Item> itemKey = keyOfItem();
 
-			BlockItem blockItem = new BlockItem(block, new Item.Settings().registryKey(itemKey));
-			Registry.register(Registries.ITEM, itemKey, blockItem);
-		}
+		BlockItem blockItem = new BlockItem(block, new Item.Settings().registryKey(itemKey));
+		Registry.register(Registries.ITEM, itemKey, blockItem);
 
 		return Registry.register(Registries.BLOCK, blockKey, block);
 	}
 
-	private static RegistryKey<Block> keyOfBlock(String name) {
-		return RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(FasterHopper.MOD_ID, name));
+	private static RegistryKey<Block> keyOfBlock() {
+		return RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(FasterHopper.MOD_ID, "golden_hopper"));
 	}
 
-	private static RegistryKey<Item> keyOfItem(String name) {
-		return RegistryKey.of(RegistryKeys.ITEM, Identifier.of(FasterHopper.MOD_ID, name));
+	private static RegistryKey<Item> keyOfItem() {
+		return RegistryKey.of(RegistryKeys.ITEM, Identifier.of(FasterHopper.MOD_ID, "golden_hopper"));
 	}
 	public static final BlockEntityType<GoldenHopperBlockEntity> GOLDEN_HOPPER_BLOCK_ENTITY =
-			register("golden_hopper", GoldenHopperBlockEntity::new, ModBlocks.GOLDEN_HOPPER);
+			register(GoldenHopperBlockEntity::new);
 
 	private static <T extends BlockEntity> BlockEntityType<T> register(
-			String name,
-			FabricBlockEntityTypeBuilder.Factory<? extends T> entityFactory,
-			Block... blocks
+			FabricBlockEntityTypeBuilder.Factory<? extends T> entityFactory
 	) {
-		Identifier id = Identifier.of(FasterHopper.MOD_ID, name);
-		return Registry.register(Registries.BLOCK_ENTITY_TYPE, id, FabricBlockEntityTypeBuilder.<T>create(entityFactory, blocks).build());
+		Identifier id = Identifier.of(FasterHopper.MOD_ID, "golden_hopper");
+		return Registry.register(Registries.BLOCK_ENTITY_TYPE, id, FabricBlockEntityTypeBuilder.<T>create(entityFactory, new Block[]{ModBlocks.GOLDEN_HOPPER}).build());
 	}
 
 	public static void initialize() {
-		ItemGroupEvents.modifyEntriesEvent(ModItems.MOD_ITEM_GROUP_KEY).register((itemGroup) -> {
-			itemGroup.add(ModBlocks.GOLDEN_HOPPER.asItem());
-		});
+		ItemGroupEvents.modifyEntriesEvent(ModItems.MOD_ITEM_GROUP_KEY).register((itemGroup) -> itemGroup.add(ModBlocks.GOLDEN_HOPPER.asItem()));
 	}
 
 }

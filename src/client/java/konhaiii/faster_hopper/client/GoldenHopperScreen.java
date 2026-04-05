@@ -1,4 +1,4 @@
-package konhaiii.faster_hopper;
+package konhaiii.faster_hopper.client;
 
 import konhaiii.faster_hopper.block.golden_hopper.GoldenHopperScreenHandler;
 import net.fabricmc.api.EnvType;

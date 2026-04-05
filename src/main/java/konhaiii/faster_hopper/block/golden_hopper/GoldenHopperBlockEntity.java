@@ -19,7 +19,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
@@ -28,6 +27,12 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+
+import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -137,6 +142,14 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 	}
 
 	private static boolean insert(World world, BlockPos pos, GoldenHopperBlockEntity blockEntity) {
+		BlockPos outputPos = pos.offset(blockEntity.facing);
+
+		// 1. Essayer Fabric Transfer API
+		if (transferFabric(world, pos, outputPos, blockEntity.facing)) {
+			return true;
+		}
+
+		// 2. Fallback Inventory vanilla
 		Inventory inventory = getOutputInventory(world, pos, blockEntity);
 		if (inventory != null) {
 			Direction direction = blockEntity.facing.getOpposite();
@@ -157,9 +170,9 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 						}
 					}
 				}
-
 			}
 		}
+
 		return false;
 	}
 
@@ -208,29 +221,43 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 	}
 
 	public static boolean extract(World world, Hopper hopper) {
-		BlockPos blockPos = BlockPos.ofFloored(hopper.getHopperX(), hopper.getHopperY() + 1.0, hopper.getHopperZ());
-		BlockState blockState = world.getBlockState(blockPos);
-		Inventory inventory = getInputInventory(world, hopper, blockPos, blockState);
+		BlockPos hopperPos = BlockPos.ofFloored(hopper.getHopperX(), hopper.getHopperY(), hopper.getHopperZ());
+		BlockPos abovePos = hopperPos.up();
+
+		// Fabric Storage API
+		Storage<ItemVariant> from = ItemStorage.SIDED.find(world, abovePos, Direction.DOWN);
+		Storage<ItemVariant> to = ItemStorage.SIDED.find(world, hopperPos, Direction.UP);
+
+		if (from != null && to != null) {
+			try (Transaction transaction = Transaction.openOuter()) {
+				long moved = StorageUtil.move(
+						from,
+						to,
+						variant -> true,
+						1,
+						transaction
+				);
+
+				if (moved > 0) {
+					transaction.commit();
+					return true;
+				}
+			}
+		}
+
+		// Fallback vanilla
+		BlockState blockState = world.getBlockState(abovePos);
+		Inventory inventory = getInputInventory(world, hopper, abovePos, blockState);
+
 		if (inventory != null) {
 			Direction direction = Direction.DOWN;
-
 			for (int i : getAvailableSlots(inventory, direction)) {
 				if (extract(hopper, inventory, i, direction)) {
 					return true;
 				}
 			}
-
-		} else {
-			boolean bl = hopper.canBlockFromAbove() && blockState.isFullCube(world, blockPos) && !blockState.isIn(BlockTags.DOES_NOT_BLOCK_HOPPERS);
-			if (!bl) {
-				for (ItemEntity itemEntity : getInputItemEntities(world, hopper)) {
-					if (extract(hopper, itemEntity)) {
-						return true;
-					}
-				}
-			}
-
 		}
+
 		return false;
 	}
 
@@ -338,11 +365,6 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 		return getInventoryAt(world, pos, state, hopper.getHopperX(), hopper.getHopperY() + 1.0, hopper.getHopperZ());
 	}
 
-	public static List<ItemEntity> getInputItemEntities(World world, Hopper hopper) {
-		Box box = hopper.getInputAreaShape().offset(hopper.getHopperX() - 0.5, hopper.getHopperY() - 0.5, hopper.getHopperZ() - 0.5);
-		return world.getEntitiesByClass(ItemEntity.class, box, EntityPredicates.VALID_ENTITY);
-	}
-
 	@Nullable
 	public static Inventory getInventoryAt(World world, BlockPos pos) {
 		return getInventoryAt(world, pos, world.getBlockState(pos), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
@@ -437,5 +459,29 @@ public class GoldenHopperBlockEntity extends LootableContainerBlockEntity implem
 	@Override
 	protected ScreenHandler createScreenHandler(int syncId, PlayerInventory playerInventory) {
 		return new GoldenHopperScreenHandler(syncId, playerInventory, this);
+	}
+
+	private static boolean transferFabric(World world, BlockPos fromPos, BlockPos toPos, Direction direction) {
+		Storage<ItemVariant> from = ItemStorage.SIDED.find(world, fromPos, direction);
+		Storage<ItemVariant> to = ItemStorage.SIDED.find(world, toPos, direction.getOpposite());
+
+		if (from != null && to != null) {
+			try (Transaction transaction = Transaction.openOuter()) {
+				long moved = StorageUtil.move(
+						from,
+						to,
+						variant -> true,
+						1,
+						transaction
+				);
+
+				if (moved > 0) {
+					transaction.commit();
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 }

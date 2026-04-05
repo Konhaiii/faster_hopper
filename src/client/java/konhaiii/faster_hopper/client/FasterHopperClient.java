@@ -1,4 +1,4 @@
-package konhaiii.faster_hopper;
+package konhaiii.faster_hopper.client;
 
 import konhaiii.faster_hopper.entity.ModEntities;
 import konhaiii.faster_hopper.screen.ModScreens;
