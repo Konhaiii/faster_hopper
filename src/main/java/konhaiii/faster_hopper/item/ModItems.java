@@ -18,15 +18,9 @@ import java.util.function.Function;
 
 public class ModItems {
 	public static <T extends Item> T register(String name, Function<Item.Properties, T> itemFactory, Item.Properties settings) {
-		// Create the item key.
 		ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(FasterHopper.MOD_ID, name));
-
-		// Create the item instance.
 		T item = itemFactory.apply(settings.setId(itemKey));
-
-		// Register the item.
 		Registry.register(BuiltInRegistries.ITEM, itemKey, item);
-
 		return item;
 	}
 
@@ -40,8 +34,6 @@ public class ModItems {
 	public static final CreativeModeTab FASTER_HOPPER_CREATIVE_TAB = FabricItemGroup.builder()
 			.icon(() -> new ItemStack(GOLDEN_HOPPER_MINECART))
 			.title(Component.translatable("itemGroup.faster_hopper"))
-			.displayItems((params, output) -> {
-				output.accept(GOLDEN_HOPPER_MINECART);
-			})
+			.displayItems((params, output) -> output.accept(GOLDEN_HOPPER_MINECART))
 			.build();
 }

@@ -7,7 +7,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.WorldlyContainer;
@@ -26,6 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
@@ -40,7 +40,6 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	public static final int MOVE_ITEM_SPEED = FasterHopper.config.goldenHopperCooldownTick;
 	public static final int HOPPER_CONTAINER_SIZE = 7;
 	private static final int[][] CACHED_SLOTS = new int[54][];
-	private static final int NO_COOLDOWN_TIME = -1;
 	private static final Component DEFAULT_NAME = Component.translatable("container.golden_hopper");
 	private NonNullList<ItemStack> items = NonNullList.withSize(HOPPER_CONTAINER_SIZE, ItemStack.EMPTY);
 	private int cooldownTime = -1;
@@ -53,7 +52,7 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	@Override
-	protected void loadAdditional(ValueInput valueInput) {
+	protected void loadAdditional(@NonNull ValueInput valueInput) {
 		super.loadAdditional(valueInput);
 		this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
 		if (!this.tryLoadLootTable(valueInput)) {
@@ -64,7 +63,7 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	@Override
-	protected void saveAdditional(ValueOutput valueOutput) {
+	protected void saveAdditional(@NonNull ValueOutput valueOutput) {
 		super.saveAdditional(valueOutput);
 		if (!this.trySaveLootTable(valueOutput)) {
 			ContainerHelper.saveAllItems(valueOutput, this.items);
@@ -79,45 +78,44 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	@Override
-	public ItemStack removeItem(int i, int j) {
+	public @NonNull ItemStack removeItem(int i, int j) {
 		this.unpackLootTable(null);
 		return ContainerHelper.removeItem(this.getItems(), i, j);
 	}
 
 	@Override
-	public void setItem(int i, ItemStack itemStack) {
+	public void setItem(int i, @NonNull ItemStack itemStack) {
 		this.unpackLootTable(null);
 		this.getItems().set(i, itemStack);
 		itemStack.limitSize(this.getMaxStackSize(itemStack));
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
-	public void setBlockState(BlockState blockState) {
+	public void setBlockState(@NonNull BlockState blockState) {
 		super.setBlockState(blockState);
 		this.facing = blockState.getValue(GoldenHopperBlock.FACING);
 	}
 
 	@Override
-	protected Component getDefaultName() {
+	protected @NonNull Component getDefaultName() {
 		return DEFAULT_NAME;
 	}
 
 	public static void pushItemsTick(Level level, BlockPos blockPos, BlockState blockState, GoldenHopperBlockEntity goldenHopperBlockEntity) {
 		goldenHopperBlockEntity.cooldownTime--;
 		goldenHopperBlockEntity.tickedGameTime = level.getGameTime();
-		if (!goldenHopperBlockEntity.isOnCooldown()) {
+		if (goldenHopperBlockEntity.isOnCooldown()) {
 			goldenHopperBlockEntity.setCooldown(0);
 			tryMoveItems(level, blockPos, blockState, goldenHopperBlockEntity, () -> suckInItems(level, goldenHopperBlockEntity));
 		}
 	}
 
-	private static boolean tryMoveItems(
+	private static void tryMoveItems(
 			Level level, BlockPos blockPos, BlockState blockState, GoldenHopperBlockEntity goldenHopperBlockEntity, BooleanSupplier booleanSupplier
 	) {
-		if (level.isClientSide()) {
-			return false;
-		} else {
-			if (!goldenHopperBlockEntity.isOnCooldown() && (Boolean)blockState.getValue(GoldenHopperBlock.ENABLED)) {
+		if (!level.isClientSide()) {
+			if (goldenHopperBlockEntity.isOnCooldown() && blockState.getValue(GoldenHopperBlock.ENABLED)) {
 				boolean bl = false;
 				if (!goldenHopperBlockEntity.isEmpty()) {
 					bl = ejectItems(level, blockPos, goldenHopperBlockEntity);
@@ -130,11 +128,9 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 				if (bl) {
 					goldenHopperBlockEntity.setCooldown(MOVE_ITEM_SPEED);
 					setChanged(level, blockPos, blockState);
-					return true;
 				}
 			}
 
-			return false;
 		}
 	}
 
@@ -316,7 +312,7 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 
 						ItemStack stack = resource.toStack(1);
 
-						if (addItem(null, (Container) hopper, stack, null).isEmpty()) {
+						if (addItem(null, hopper, stack, null).isEmpty()) {
 
 							transaction.commit();
 							return true;
@@ -389,15 +385,11 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	private static boolean canPlaceItemInContainer(Container container, ItemStack itemStack, int i, @Nullable Direction direction) {
-		return !container.canPlaceItem(i, itemStack)
-				? false
-				: !(container instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canPlaceItemThroughFace(i, itemStack, direction));
+		return container.canPlaceItem(i, itemStack) && !(container instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canPlaceItemThroughFace(i, itemStack, direction));
 	}
 
 	private static boolean canTakeItemFromContainer(Container container, Container container2, ItemStack itemStack, int i, Direction direction) {
-		return !container2.canTakeItem(container, i, itemStack)
-				? false
-				: !(container2 instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canTakeItemThroughFace(i, itemStack, direction));
+		return container2.canTakeItem(container, i, itemStack) && !(container2 instanceof WorldlyContainer worldlyContainer && !worldlyContainer.canTakeItemThroughFace(i, itemStack, direction));
 	}
 
 	private static ItemStack tryMoveInItem(@Nullable Container container, Container container2, ItemStack itemStack, int i, @Nullable Direction direction) {
@@ -432,16 +424,6 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 		}
 
 		return itemStack;
-	}
-
-	@Nullable
-	private static Container getAttachedContainer(Level level, BlockPos blockPos, GoldenHopperBlockEntity goldenHopperBlockEntity) {
-		return getContainerAt(level, blockPos.relative(goldenHopperBlockEntity.facing));
-	}
-
-	@Nullable
-	private static Container getSourceContainer(Level level, Hopper hopper, BlockPos blockPos, BlockState blockState) {
-		return getContainerAt(level, blockPos, blockState, hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
 	}
 
 	public static List<ItemEntity> getItemsAtAndAbove(Level level, Hopper hopper) {
@@ -515,7 +497,7 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	private boolean isOnCooldown() {
-		return this.cooldownTime > 0;
+		return this.cooldownTime <= 0;
 	}
 
 	private boolean isOnCustomCooldown() {
@@ -523,12 +505,12 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	@Override
-	protected NonNullList<ItemStack> getItems() {
+	protected @NonNull NonNullList<ItemStack> getItems() {
 		return this.items;
 	}
 
 	@Override
-	protected void setItems(NonNullList<ItemStack> nonNullList) {
+	protected void setItems(@NonNull NonNullList<ItemStack> nonNullList) {
 		this.items = nonNullList;
 	}
 
@@ -541,7 +523,7 @@ public class GoldenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	}
 
 	@Override
-	protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
+	protected @NonNull AbstractContainerMenu createMenu(int i, @NonNull Inventory inventory) {
 		return new GoldenHopperMenu(i, inventory, this);
 	}
 }

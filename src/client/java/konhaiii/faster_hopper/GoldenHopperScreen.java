@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import org.jspecify.annotations.NonNull;
 
 public class GoldenHopperScreen extends AbstractContainerScreen<GoldenHopperMenu> {
 	private static final Identifier HOPPER_LOCATION = Identifier.fromNamespaceAndPath("faster_hopper", "textures/gui/container/golden_hopper.png");
@@ -18,7 +19,7 @@ public class GoldenHopperScreen extends AbstractContainerScreen<GoldenHopperMenu
 	}
 
 	@Override
-	public void render(GuiGraphics guiGraphics, int i, int j, float f) {
+	public void render(@NonNull GuiGraphics guiGraphics, int i, int j, float f) {
 		super.render(guiGraphics, i, j, f);
 		this.renderTooltip(guiGraphics, i, j);
 	}

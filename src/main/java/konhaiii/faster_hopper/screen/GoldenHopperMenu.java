@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.NonNull;
 
 public class GoldenHopperMenu extends AbstractContainerMenu {
 	public static final int CONTAINER_SIZE = 7;
@@ -31,15 +32,15 @@ public class GoldenHopperMenu extends AbstractContainerMenu {
 	}
 
 	@Override
-	public boolean stillValid(Player player) {
+	public boolean stillValid(@NonNull Player player) {
 		return this.golden_hopper.stillValid(player);
 	}
 
 	@Override
-	public ItemStack quickMoveStack(Player player, int i) {
+	public @NonNull ItemStack quickMoveStack(@NonNull Player player, int i) {
 		ItemStack itemStack = ItemStack.EMPTY;
 		Slot slot = this.slots.get(i);
-		if (slot != null && slot.hasItem()) {
+		if (slot.hasItem()) {
 			ItemStack itemStack2 = slot.getItem();
 			itemStack = itemStack2.copy();
 			if (i < this.golden_hopper.getContainerSize()) {
@@ -61,7 +62,7 @@ public class GoldenHopperMenu extends AbstractContainerMenu {
 	}
 
 	@Override
-	public void removed(Player player) {
+	public void removed(@NonNull Player player) {
 		super.removed(player);
 		this.golden_hopper.stopOpen(player);
 	}
