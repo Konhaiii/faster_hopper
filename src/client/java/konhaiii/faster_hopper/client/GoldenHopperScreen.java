@@ -1,4 +1,4 @@
-package konhaiii.faster_hopper;
+package konhaiii.faster_hopper.client;
 
 import konhaiii.faster_hopper.screen.GoldenHopperMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import org.jspecify.annotations.NonNull;
 
 public class GoldenHopperScreen extends AbstractContainerScreen<GoldenHopperMenu> {
 	private static final Identifier HOPPER_LOCATION = Identifier.fromNamespaceAndPath("faster_hopper", "textures/gui/container/golden_hopper.png");
@@ -17,7 +18,7 @@ public class GoldenHopperScreen extends AbstractContainerScreen<GoldenHopperMenu
 	}
 
 	@Override
-	public void extractBackground(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
+	public void extractBackground(final @NonNull GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
 		super.extractBackground(graphics, mouseX, mouseY, a);
 		int xo = (this.width - this.imageWidth) / 2;
 		int yo = (this.height - this.imageHeight) / 2;
